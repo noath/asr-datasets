@@ -1,21 +1,14 @@
 import argparse
+import itertools
+import nltk
 import numpy as np
+import os
 import random
 import re
 import requests
+import time
 
 from pywikiapi import wikipedia
-
-
-def build_ngrams(words, min_n=2, max_n=4):
-    if min_n > max_n:
-        raise ValueError("min_m must be less then max_n")
-
-    res_ngrams = {}
-    for n in range(min_n, max_n + 1):
-        res_ngrams[n] = [" ".join(words[i : i + n]) for i in range(len(words) - n + 1)]
-
-    return res_ngrams
 
 
 def parse_articles(site, pageids, lang):
@@ -27,7 +20,7 @@ def parse_articles(site, pageids, lang):
         text = re.sub(r"\\n\\n[\=]+ [\w\s!:;,.~@#$%^&*()\_\-]+ [\=]+\\n", "", raw)
 
         # deleting punctuation
-        text = re.sub(r"[\.,()!?\[\]:;\"\-«»\=]", "", text)
+        text = re.sub(r"[\.,()!?\[\]:;\"\–\-«»\=]", "", text)
 
         # lowercase
         text = text.lower()
@@ -43,52 +36,65 @@ def parse_articles(site, pageids, lang):
     return seqs
 
 
-def get_corpus(
-    lang,
-    min_n,
-    max_n,
-    max_size=-1,
-    file_path=None,
-    encoding="utf-8",
-    random_choise=False,
-):
-    site = wikipedia(lang)
+class Corpus:
+    def __init__(self, lang):
+        self.size = 0
+        self.lang = lang
+        self.generator = iter([])
 
-    corpus = []
-    for r in site.query(list="allpages", apprefix=""):
-        pageids = (page["pageid"] for page in r.allpages)
-        seqs = parse_articles(site, pageids, lang)
-        for seq in seqs:
-            ngrams = build_ngrams(seq, min_n, max_n)
-            for _, ngrams_list in ngrams.items():
-                corpus += ngrams_list
-                if max_size > 0 and len(corpus) >= max_size:
+    def __len__(self):
+        return self.size
+
+    def collect_data(self, min_n, max_n, max_size=-1, random_choise=False):
+        site = wikipedia(self.lang)
+        corpus_gens = []
+        for r in site.query(list="allpages", apprefix=""):
+            if max_size > 0 and self.size >= max_size:
+                break
+
+            pageids = (page["pageid"] for page in r.allpages)
+            seqs = parse_articles(site, pageids, self.lang)
+            if random_choise:
+                seqs = np.random.permutation(seqs)
+
+            ngram_gens = []
+            for seq in seqs:
+                if max_size > 0 and self.size >= max_size:
                     break
 
-            else:
-                continue
-            break
+                self.size += len(tuple(nltk.everygrams(seq, min_n, max_n))) # not huge tuple here, so no problems with allocations
+                ngram_gens.append(nltk.everygrams(seq, min_n, max_n))
 
-        else:
-            continue
-        break
+            corpus_gens.append(itertools.chain(*ngram_gens))
+        self.generator = itertools.chain(*corpus_gens)
 
-    if max_size > 0:
-        if random_choise:
-            corpus = np.random.choice(corpus, size=max_size, replace=False)
-        else:
-            corpus = corpus[:max_size]
+        if max_size > 0:
+            self.generator = itertools.islice(self.generator, max_size)
+            self.size = max_size
 
-    if file_path is not None:
+    def reset_data(self):
+        self.generator = iter([])
+        self.size = 0
+
+    def get_data(self):
+        return self.generator
+
+    def save_tsv(self, file_path=None, encoding="utf-8", write_n=True, ngram_as_string=False):
+        if file_path is None:
+            timestamp_name = f"{int(time.time())}.tsv"
+            file_path = os.path.join(os.curdir, timestamp_name)
         with open(file_path, "w", encoding=encoding) as target:
-            for ngram in corpus:
-                target.write(f"{len(ngram)}\t{ngram}\n")
-
-    return corpus
+            for ngram in self.generator:
+                res_string = ""
+                if write_n:
+                    res_string += f"{len(ngram)}\t"
+                ngram_string = f"{ngram}\n" if not ngram_as_string else f"{' '.join(ngram)}\n"
+                res_string += ngram_string
+                target.write(res_string)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Corpus collecting tool')
     parser.add_argument(
         "lang", help="language for which wikipedia will be parsed", type=str
     )
@@ -106,11 +112,32 @@ if __name__ == "__main__":
         default=-1,
     )
     parser.add_argument(
-        "-file",
+        "-fp",
         "--file_path",
         help="path to file which will contain desired corpus",
         type=str,
         default=None,
+    )
+    parser.add_argument(
+        "-s",
+        "--save",
+        help="flag for saving .tsv file (you can specify file using --file_path, encoding by --encoding, and whether write n with --write_n)",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "-wn",
+        "--write_n",
+        help="flag for write N\tNGRAM instead of NGRAM in .tsv file.",
+        action="store_true",
+        default=True,
+    )
+    parser.add_argument(
+        "-str",
+        "--ngram_as_string",
+        help="flag for write ngram as string instead of tuple of strings in .tsv file.",
+        action="store_true",
+        default=True,
     )
     parser.add_argument(
         "-rand",
@@ -128,12 +155,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    get_corpus(
-        args.lang,
-        args.min_n,
-        args.max_n,
-        args.max_size,
-        args.file_path,
-        args.encoding,
-        args.random_choise,
-    )
+    corpus = Corpus(args.lang)
+    corpus.collect_data(args.min_n, args.max_n, args.max_size, args.random_choise)
+    if args.save:
+        corpus.save_tsv(args.file_path, args.encoding, args.write_n, args.ngram_as_string)

@@ -29,3 +29,14 @@ def articles_batch_generator(lang, batches_count, batch_size=10):
     for _ in range(batches_count):
         batch, next_article = get_articles_batch(S, lang, next_article, batch_size)
         yield batch
+
+
+def build_ngrams(words, min_n=2, max_n=4):
+    if min_n > max_n:
+        raise ValueError("min_m must be less then max_n")
+
+    res_ngrams = {}
+    for n in range(min_n, max_n + 1):
+        res_ngrams[n] = [" ".join(words[i : i + n]) for i in range(len(words) - n + 1)]
+
+    return res_ngrams
