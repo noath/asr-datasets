@@ -8,6 +8,7 @@ import re
 import requests
 import time
 
+from joblib import Parallel, delayed
 from pywikiapi import wikipedia
 
 
@@ -45,29 +46,43 @@ class Corpus:
     def __len__(self):
         return self.size
 
-    def collect_data(self, min_n, max_n, max_size=-1, random_choise=False):
-        site = wikipedia(self.lang)
-        corpus_gens = []
-        for r in site.query(list="allpages", apprefix=""):
+    def __iterate_wikipages__(self, site, resp, min_n, max_n, max_size=-1, random_choise=False):
+        if max_size > 0 and self.size >= max_size:
+            return iter([])
+
+        pageids = (page["pageid"] for page in resp.allpages)
+        seqs = parse_articles(site, pageids, self.lang)
+        if random_choise:
+            seqs = np.random.permutation(seqs)
+
+        ngram_gens = []
+        for seq in seqs:
             if max_size > 0 and self.size >= max_size:
                 break
 
-            pageids = (page["pageid"] for page in r.allpages)
-            seqs = parse_articles(site, pageids, self.lang)
-            if random_choise:
-                seqs = np.random.permutation(seqs)
+            self.size += len(
+                tuple(nltk.everygrams(seq, min_n, max_n))
+            )  # not huge tuple here, so no problems with allocations
+            ngram_gens.append(nltk.everygrams(seq, min_n, max_n))
 
-            ngram_gens = []
-            for seq in seqs:
-                if max_size > 0 and self.size >= max_size:
-                    break
+        return itertools.chain(*ngram_gens)
 
-                self.size += len(
-                    tuple(nltk.everygrams(seq, min_n, max_n))
-                )  # not huge tuple here, so no problems with allocations
-                ngram_gens.append(nltk.everygrams(seq, min_n, max_n))
+    def __pages_generator__(self, site, max_size=-1):
+        for r in site.query(list="allpages", apprefix=""):
+            if max_size > 0 and self.size >= max_size:
+                break
+            yield r
 
-            corpus_gens.append(itertools.chain(*ngram_gens))
+    def collect_data(self, min_n, max_n, max_size=-1, random_choise=False, n_jobs=-1, verbose=10):
+        site = wikipedia(self.lang)
+        corpus_gens = []
+        for r in self.__pages_generator__(site, max_size):
+            new_gen = self.__iterate_wikipages__(site, r, max_n, max_n, max_size, random_choise)
+            corpus_gens.append(new_gen)
+        # TODO: debug returning a generator type from self.__iterate_wikipages__(...) with Parallel
+        # corpus_gens = Parallel(n_jobs=n_jobs, verbose=verbose)(
+        #     delayed(self.__iterate_wikipages__)(site, r, max_n, max_n, max_size, random_choise) for r in self.__pages_generator__(site, max_size)
+        # )
         self.generator = itertools.chain(*corpus_gens)
 
         if max_size > 0:
