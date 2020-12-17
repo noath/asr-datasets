@@ -62,7 +62,9 @@ class Corpus:
                 if max_size > 0 and self.size >= max_size:
                     break
 
-                self.size += len(tuple(nltk.everygrams(seq, min_n, max_n))) # not huge tuple here, so no problems with allocations
+                self.size += len(
+                    tuple(nltk.everygrams(seq, min_n, max_n))
+                )  # not huge tuple here, so no problems with allocations
                 ngram_gens.append(nltk.everygrams(seq, min_n, max_n))
 
             corpus_gens.append(itertools.chain(*ngram_gens))
@@ -79,7 +81,9 @@ class Corpus:
     def get_data(self):
         return self.generator
 
-    def save_tsv(self, file_path=None, encoding="utf-8", write_n=True, ngram_as_string=False):
+    def save_tsv(
+        self, file_path=None, encoding="utf-8", write_n=True, ngram_as_string=False
+    ):
         if file_path is None:
             timestamp_name = f"{int(time.time())}.tsv"
             file_path = os.path.join(os.curdir, timestamp_name)
@@ -88,13 +92,15 @@ class Corpus:
                 res_string = ""
                 if write_n:
                     res_string += f"{len(ngram)}\t"
-                ngram_string = f"{ngram}\n" if not ngram_as_string else f"{' '.join(ngram)}\n"
+                ngram_string = (
+                    f"{ngram}\n" if not ngram_as_string else f"{' '.join(ngram)}\n"
+                )
                 res_string += ngram_string
                 target.write(res_string)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Corpus collecting tool')
+    parser = argparse.ArgumentParser(description="Corpus collecting tool")
     parser.add_argument(
         "lang", help="language for which wikipedia will be parsed", type=str
     )
@@ -158,4 +164,6 @@ if __name__ == "__main__":
     corpus = Corpus(args.lang)
     corpus.collect_data(args.min_n, args.max_n, args.max_size, args.random_choise)
     if args.save:
-        corpus.save_tsv(args.file_path, args.encoding, args.write_n, args.ngram_as_string)
+        corpus.save_tsv(
+            args.file_path, args.encoding, args.write_n, args.ngram_as_string
+        )
