@@ -1,117 +1,7 @@
 import argparse
-import itertools
-import nltk
-import numpy as np
 import os
-import random
-import re
-import requests
-import time
 
-from joblib import Parallel, delayed
-from pywikiapi import wikipedia
-
-
-def parse_articles(site, pageids, lang):
-    seqs = []
-    for page in site.query_pages(pageids=pageids, prop="cirrusdoc"):
-        raw = page["cirrusdoc"][0]["source"]["text"]
-
-        # deleting headers
-        text = re.sub(r"\\n\\n[\=]+ [\w\s!:;,.~@#$%^&*()\_\-]+ [\=]+\\n", "", raw)
-
-        # deleting punctuation
-        text = re.sub(r"[\.,()!?\[\]:;\"\–\-«»\=]", "", text)
-
-        # lowercase
-        text = text.lower()
-
-        # TODO: add additional text clearing:
-        #       * remove links
-        #       *(?) remove special symbols like << and >>
-        #       * remove chars from not current language
-
-        words_seq = text.split()
-        seqs.append(words_seq)
-
-    return seqs
-
-
-class Corpus:
-    def __init__(self, lang):
-        self.size = 0
-        self.lang = lang
-        self.generator = iter([])
-
-    def __len__(self):
-        return self.size
-
-    def __iterate_wikipages__(self, site, resp, min_n, max_n, max_size=-1, random_choise=False):
-        if max_size > 0 and self.size >= max_size:
-            return iter([])
-
-        pageids = (page["pageid"] for page in resp.allpages)
-        seqs = parse_articles(site, pageids, self.lang)
-        if random_choise:
-            seqs = np.random.permutation(seqs)
-
-        ngram_gens = []
-        for seq in seqs:
-            if max_size > 0 and self.size >= max_size:
-                break
-
-            self.size += len(
-                tuple(nltk.everygrams(seq, min_n, max_n))
-            )  # not huge tuple here, so no problems with allocations
-            ngram_gens.append(nltk.everygrams(seq, min_n, max_n))
-
-        return itertools.chain(*ngram_gens)
-
-    def __pages_generator__(self, site, max_size=-1):
-        for r in site.query(list="allpages", apprefix=""):
-            if max_size > 0 and self.size >= max_size:
-                break
-            yield r
-
-    def collect_data(self, min_n, max_n, max_size=-1, random_choise=False, n_jobs=-1, verbose=10):
-        site = wikipedia(self.lang)
-        corpus_gens = []
-        for r in self.__pages_generator__(site, max_size):
-            new_gen = self.__iterate_wikipages__(site, r, max_n, max_n, max_size, random_choise)
-            corpus_gens.append(new_gen)
-        # TODO: debug returning a generator type from self.__iterate_wikipages__(...) with Parallel
-        # corpus_gens = Parallel(n_jobs=n_jobs, verbose=verbose)(
-        #     delayed(self.__iterate_wikipages__)(site, r, max_n, max_n, max_size, random_choise) for r in self.__pages_generator__(site, max_size)
-        # )
-        self.generator = itertools.chain(*corpus_gens)
-
-        if max_size > 0:
-            self.generator = itertools.islice(self.generator, max_size)
-            self.size = max_size
-
-    def reset_data(self):
-        self.generator = iter([])
-        self.size = 0
-
-    def get_data(self):
-        return self.generator
-
-    def save_tsv(
-        self, file_path=None, encoding="utf-8", write_n=True, ngram_as_string=False
-    ):
-        if file_path is None:
-            timestamp_name = f"{int(time.time())}.tsv"
-            file_path = os.path.join(os.curdir, timestamp_name)
-        with open(file_path, "w", encoding=encoding) as target:
-            for ngram in self.generator:
-                res_string = ""
-                if write_n:
-                    res_string += f"{len(ngram)}\t"
-                ngram_string = (
-                    f"{ngram}\n" if not ngram_as_string else f"{' '.join(ngram)}\n"
-                )
-                res_string += ngram_string
-                target.write(res_string)
+from corpus import Corpus
 
 
 if __name__ == "__main__":
@@ -174,10 +64,19 @@ if __name__ == "__main__":
         type=str,
         default="utf-8",
     )
+    parser.add_argument(
+        "-n_proc",
+        "--num_of_processes",
+        help="number of processing will be using for multiprocessing",
+        type=int,
+        default=os.cpu_count() - 1,
+    )
 
     args = parser.parse_args()
-    corpus = Corpus(args.lang)
-    corpus.collect_data(args.min_n, args.max_n, args.max_size, args.random_choise)
+    corpus = Corpus(
+        args.lang, args.min_n, args.min_n, args.max_size, args.random_choise
+    )
+    corpus.collect_data(args.num_of_processes)
     if args.save:
         corpus.save_tsv(
             args.file_path, args.encoding, args.write_n, args.ngram_as_string

@@ -1,4 +1,4 @@
-numpy==1.18.5
-requests==2.24.0
-nltk==3.5
-pywikiapi==4.3.0
+numpy>=1.18.5
+requests>=2.24.0
+nltk>=3.5
+pywikiapi>=4.3.0
