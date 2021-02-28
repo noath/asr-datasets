@@ -33,7 +33,7 @@ def articles_batch_generator(lang, batches_count, batch_size=10):
 
 def build_ngrams(words, min_n=2, max_n=4):
     if min_n > max_n:
-        raise ValueError("min_m must be less then max_n")
+        raise ValueError("min_m must be less than max_n")
 
     res_ngrams = {}
     for n in range(min_n, max_n + 1):
