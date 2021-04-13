@@ -4,7 +4,7 @@ import os
 from corpus import Corpus
 
 
-if __name__ == "__main__":
+def run():
     parser = argparse.ArgumentParser(description="Corpus collecting tool")
     parser.add_argument(
         "lang", help="language for which wikipedia will be parsed", type=str
@@ -81,3 +81,7 @@ if __name__ == "__main__":
         corpus.save_tsv(
             args.file_path, args.encoding, args.write_n, args.ngram_as_string
         )
+
+
+if __name__ == "__main__":
+    run()
