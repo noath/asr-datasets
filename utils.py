@@ -40,3 +40,30 @@ def build_ngrams(words, min_n=2, max_n=4):
         res_ngrams[n] = [" ".join(words[i : i + n]) for i in range(len(words) - n + 1)]
 
     return res_ngrams
+
+
+def parse_articles(site, pageids):
+    seqs = []
+    for page in site.query_pages(pageids=pageids, prop=["cirrusdoc"]):
+        raw = page["cirrusdoc"][0]["source"]["text"]
+        # deleting headers
+        text = re.sub(r"\\n\\n[\=]+ [\w\s!:;,.~@#$%^&*()\_\-]+ [\=]+\\n", "", raw)
+
+        # deleting punctuation
+        text = re.sub(r"[.,\(\)!?\[\]:;\"—\-«»\=\\\+]", "", text)
+
+        # deleting numbers
+        text = re.sub(r"[0-9]", "", text)
+
+        # lowercase
+        text = text.lower()
+
+        # TODO: add additional text clearing:
+        #       * remove links
+        #       * remove chars from not current language
+        #       ** not remove words with majority letters from current language
+
+        words_seq = text.split()
+        seqs.append(words_seq)
+
+    return seqs

@@ -10,15 +10,9 @@ def run():
         "lang", help="language for which wikipedia will be parsed", type=str
     )
     parser.add_argument(
-        "min_n", help="min n (including) for collecting n-grams", type=int
-    )
-    parser.add_argument(
-        "max_n", help="max n (including) for collecting n-grams", type=int
-    )
-    parser.add_argument(
         "-size",
         "--max_size",
-        help="limit for corpus n-grams count",
+        help="limit for corpus paragraphs count",
         type=int,
         default=-1,
     )
@@ -37,23 +31,16 @@ def run():
         default=False,
     )
     parser.add_argument(
-        "-wn",
-        "--write_n",
-        help="flag for write N\tNGRAM instead of NGRAM in .tsv file.",
-        action="store_true",
-        default=True,
-    )
-    parser.add_argument(
-        "-str",
-        "--ngram_as_string",
-        help="flag for write ngram as string instead of tuple of strings in .tsv file.",
+        "-wl",
+        "--write_len",
+        help="flag for write LEN\tPAR instead of PAR in .tsv file.",
         action="store_true",
         default=True,
     )
     parser.add_argument(
         "-rand",
         "--random_choise",
-        help="flag for random choice of max_size n-grams from collected corpus (ignored if max_sized doesn`t specified",
+        help="flag for random choice of max_size paragraphs from collected corpus (ignored if max_sized doesn`t specified)",
         action="store_true",
         default=False,
     )
@@ -78,9 +65,7 @@ def run():
     )
     corpus.collect_data(args.num_of_processes)
     if args.save:
-        corpus.save_tsv(
-            args.file_path, args.encoding, args.write_n, args.ngram_as_string
-        )
+        corpus.save_tsv(args.file_path, args.encoding, args.write_len)
 
 
 if __name__ == "__main__":
