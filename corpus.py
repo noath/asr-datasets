@@ -14,12 +14,10 @@ from pywikiapi import wikipedia
 
 
 class Corpus:
-    def __init__(self, lang, min_n, max_n, max_size=-1, random_choise=False):
+    def __init__(self, lang, max_size=-1, random_choise=False):
         self.size = 0
         self.lang = lang
         self.generator = iter([])
-        self.min_n = min_n
-        self.max_n = max_n
         self.max_size = max_size
         self.random_choise = random_choise
         self.site = wikipedia(self.lang)
@@ -41,7 +39,6 @@ class Corpus:
                 for data in soup.find_all("p"):
                     paragaraphs.append(data.get_text())
 
-                print(paragaraphs)
             except:
                 continue
         if self.random_choise:
@@ -63,7 +60,6 @@ class Corpus:
                 except StopIteration:
                     break
 
-            print(batch)
             res = pool.starmap(
                 Corpus.__iterate_wikipages_by_id__, zip(itertools.repeat(self), batch)
             )

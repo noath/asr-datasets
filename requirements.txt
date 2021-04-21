@@ -1,4 +1,5 @@
-numpy>=1.18.5
-requests>=2.24.0
-nltk>=3.5
 pywikiapi>=4.3.0
+nltk>=3.6.1
+requests>=2.22.0
+numpy>=1.20.2
+beautifulsoup4>=4.9.3

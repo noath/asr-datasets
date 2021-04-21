@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 
 from corpus import Corpus
@@ -60,9 +61,14 @@ def run():
     )
 
     args = parser.parse_args()
-    corpus = Corpus(
-        args.lang, args.min_n, args.min_n, args.max_size, args.random_choise
+
+    logging.basicConfig(
+        format="%(asctime)s %(message)s",
+        datefmt="%m/%d/%Y %I:%M:%S %p",
+        filename="collect_corpus.log",
+        level=logging.WARNING,
     )
+    corpus = Corpus(args.lang, args.max_size, args.random_choise)
     corpus.collect_data(args.num_of_processes)
     if args.save:
         corpus.save_tsv(args.file_path, args.encoding, args.write_len)
