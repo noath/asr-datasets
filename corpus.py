@@ -114,8 +114,8 @@ class Corpus:
             timestamp_name = f"{int(time.time())}.tsv"
             file_path = os.path.join(os.curdir, timestamp_name)
         with open(file_path, "w", encoding=encoding) as target:
-            for paragaraph in self.generator:
-                res_string = ""
+            for ind, paragaraph in enumerate(self.generator):
+                res_string = f"{ind}\t"
                 if write_len:
                     res_string += f"{len(paragaraph)}\t"
                 res_string += paragaraph
