@@ -109,7 +109,7 @@ class Corpus:
     def get_data(self):
         return self.generator
 
-    def save_tsv(self, file_path=None, encoding="utf-8", write_len=True):
+    def save_tsv(self, file_path=None, encoding="utf-8", write_len=False):
         if file_path is None:
             timestamp_name = f"{int(time.time())}.tsv"
             file_path = os.path.join(os.curdir, timestamp_name)

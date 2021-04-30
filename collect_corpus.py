@@ -55,9 +55,9 @@ def run():
     parser.add_argument(
         "-wl",
         "--write_len",
-        help="flag for write LEN\tPAR instead of PAR in .tsv file.",
+        help="flag for write ID\tLEN\tPAR instead of ID\tPAR in .tsv file.",
         action="store_true",
-        default=True,
+        default=False,
     )
     parser.add_argument(
         "-rand",
