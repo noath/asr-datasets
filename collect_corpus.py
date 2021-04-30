@@ -48,14 +48,21 @@ def run():
     parser.add_argument(
         "-s",
         "--save",
-        help="flag for saving .tsv file (you can specify file using --file_path, encoding by --encoding, and whether write n with --write_n)",
+        help="flag for saving .tsv file (you can specify file using --file_path, encoding by --encoding, and whether write paragraph len with --write_len)",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "-st",
+        "--skip_titles",
+        help="flag for not adding default Toloka-like titles to .tsv file (ignored if -s doesn`t provided)",
         action="store_true",
         default=False,
     )
     parser.add_argument(
         "-wl",
         "--write_len",
-        help="flag for write ID\tLEN\tPAR instead of ID\tPAR in .tsv file.",
+        help="flag for write ID\tLEN\tPAR instead of ID\tPAR in .tsv file. (ignored if -s doesn`t provided)",
         action="store_true",
         default=False,
     )
@@ -69,7 +76,7 @@ def run():
     parser.add_argument(
         "-enc",
         "--encoding",
-        help="encoding (open-like str for python3) for output file (ignored if file_path doesn`t specified)",
+        help="encoding (open-like str for python3) for output file (ignored if -s doesn`t provided)",
         type=str,
         default="utf-8",
     )
@@ -99,7 +106,7 @@ def run():
     )
     corpus.collect_data(args.num_of_processes)
     if args.save:
-        corpus.save_tsv(args.file_path, args.encoding, args.write_len)
+        corpus.save_tsv(args.file_path, args.encoding, args.write_len, args.skip_titles)
 
 
 if __name__ == "__main__":

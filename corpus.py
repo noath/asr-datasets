@@ -109,11 +109,15 @@ class Corpus:
     def get_data(self):
         return self.generator
 
-    def save_tsv(self, file_path=None, encoding="utf-8", write_len=False):
+    def save_tsv(
+        self, file_path=None, encoding="utf-8", write_len=False, skip_titles=False
+    ):
         if file_path is None:
             timestamp_name = f"{int(time.time())}.tsv"
             file_path = os.path.join(os.curdir, timestamp_name)
         with open(file_path, "w", encoding=encoding) as target:
+            if not skip_titles:
+                target.write(f"INPUT:text_id\tINPUT:text")
             for ind, paragaraph in enumerate(self.generator):
                 res_string = f"{ind}\t"
                 if write_len:
