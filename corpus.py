@@ -14,13 +14,25 @@ from pywikiapi import wikipedia
 
 
 class Corpus:
-    def __init__(self, lang, max_size=-1, random_choise=False):
+    def __init__(
+        self,
+        lang,
+        max_size=-1,
+        random_choise=False,
+        min_len=None,
+        max_len=None,
+        verbose=10,
+    ):
         self.size = 0
         self.lang = lang
         self.generator = iter([])
         self.max_size = max_size
         self.random_choise = random_choise
         self.site = wikipedia(self.lang)
+        self.min_len = min_len
+        self.max_len = max_len
+        self.verbose = verbose
+        self.last_actions = []
 
     def __len__(self):
         return self.size
@@ -28,6 +40,14 @@ class Corpus:
     def __iterate_wikipages_by_id__(self, pageids):
         paragaraphs = []
         for pageid in pageids:
+            logging.info(f"proccessing page with id {pageid}")
+            self.last_actions.append(pageid)
+            if self.verbose > 0 and len(self.last_actions) >= self.verbose:
+                print(
+                    f"Processed pages with IDs: {','.join(map(str, self.last_actions))}"
+                )
+                self.last_actions = []
+
             gen = self.site.query(
                 pageids=pageid, prop=["extracts"], exlimit=1
             )  # could use explaintext instead bs4 html parser
@@ -37,7 +57,12 @@ class Corpus:
                 html_text = page["extract"].replace("\xa0", " ").replace("\n", "")
                 soup = BeautifulSoup(html_text, "html.parser")
                 for data in soup.find_all("p"):
-                    paragaraphs.append(data.get_text())
+                    paragraph = data.get_text()
+                    l = len(paragraph)
+                    valid_lower_bound = self.min_len is None or l >= self.min_len
+                    valid_upper_bound = self.max_len is None or l <= self.max_len
+                    if valid_lower_bound and valid_upper_bound:
+                        paragaraphs.append(data.get_text())
 
             except:
                 continue
@@ -49,26 +74,27 @@ class Corpus:
     def collect_data(self, n_proc=os.cpu_count() - 1):
         corpus_gens = []
         pages_gen = self.site.query(list="allpages", apprefix="")
-        pool = mp.Pool(n_proc)
-        while True:
-            batch = []
-            while len(batch) < 2 * n_proc:
-                try:
-                    pages = next(pages_gen)
-                    pageids = [page.pageid for page in pages.allpages]
-                    batch.append(pageids)
-                except StopIteration:
+        with mp.Pool(n_proc) as pool:
+            while True:
+                batch = []
+                while len(batch) < 2 * n_proc:
+                    try:
+                        pages = next(pages_gen)
+                        pageids = [page.pageid for page in pages.allpages]
+                        batch.append(pageids)
+                    except StopIteration:
+                        break
+
+                res = pool.starmap(
+                    Corpus.__iterate_wikipages_by_id__,
+                    zip(itertools.repeat(self), batch),
+                )
+                for paragaraph in res:
+                    self.size += len(paragaraph)
+                    corpus_gens.append(iter(paragaraph))
+
+                if self.size >= self.max_size:
                     break
-
-            res = pool.starmap(
-                Corpus.__iterate_wikipages_by_id__, zip(itertools.repeat(self), batch)
-            )
-            for paragaraph in res:
-                self.size += len(paragaraph)
-                corpus_gens.append(iter(paragaraph))
-
-            if self.size >= self.max_size:
-                break
 
         self.generator = itertools.chain(*corpus_gens)
 

@@ -18,6 +18,27 @@ def run():
         default=-1,
     )
     parser.add_argument(
+        "-v",
+        "--verbose",
+        help="shows how often print progress message",
+        type=int,
+        default=10,
+    )
+    parser.add_argument(
+        "-min_len",
+        "--min_paragraph_len",
+        help="lower bound for paragraphs length",
+        type=int,
+        default=None,
+    )
+    parser.add_argument(
+        "-max_len",
+        "--max_paragraph_len",
+        help="upper bound for paragraphs length",
+        type=int,
+        default=None,
+    )
+    parser.add_argument(
         "-fp",
         "--file_path",
         help="path to file which will contain desired corpus",
@@ -66,9 +87,16 @@ def run():
         format="%(asctime)s %(message)s",
         datefmt="%m/%d/%Y %I:%M:%S %p",
         filename="collect_corpus.log",
-        level=logging.WARNING,
+        level=logging.INFO,
     )
-    corpus = Corpus(args.lang, args.max_size, args.random_choise)
+    corpus = Corpus(
+        args.lang,
+        args.max_size,
+        args.random_choise,
+        args.min_paragraph_len,
+        args.max_paragraph_len,
+        args.verbose,
+    )
     corpus.collect_data(args.num_of_processes)
     if args.save:
         corpus.save_tsv(args.file_path, args.encoding, args.write_len)
