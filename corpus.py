@@ -117,7 +117,7 @@ class Corpus:
             file_path = os.path.join(os.curdir, timestamp_name)
         with open(file_path, "w", encoding=encoding) as target:
             if not skip_titles:
-                target.write(f"INPUT:text_id\tINPUT:text")
+                target.write(f"INPUT:text_id\tINPUT:text\n")
             for ind, paragaraph in enumerate(self.generator):
                 res_string = f"{ind}\t"
                 if write_len:
