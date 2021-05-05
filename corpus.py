@@ -7,8 +7,8 @@ import os
 import random
 import re
 import requests
-import time
 
+from datetime import datetime
 from bs4 import BeautifulSoup
 from pywikiapi import wikipedia
 
@@ -88,6 +88,8 @@ class Corpus:
         return paragaraphs
 
     def collect_data(self, n_proc=os.cpu_count() - 1):
+        print(f"Started collecting data using {n_proc} jobs...")
+        start_time = datetime.now()
         corpus_gens = []
         pages_gen = self.site.query(list="allpages", apprefix="")
         with mp.Pool(n_proc) as pool:
@@ -117,6 +119,11 @@ class Corpus:
         if self.max_size > 0:
             self.generator = itertools.islice(self.generator, self.max_size)
             self.size = self.max_size
+
+        end_time = datetime.now()
+        print(
+            f"Finished collecting data from wikipages.\nProcessing time: {end_time - start_time}."
+        )
 
     def reset_data(self):
         self.generator = iter([])

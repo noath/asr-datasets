@@ -20,7 +20,7 @@ def run():
     parser.add_argument(
         "-v",
         "--verbose",
-        help="shows how often print progress message",
+        help="shows how often print progress message; use zero value for silent mode",
         type=int,
         default=10,
     )
