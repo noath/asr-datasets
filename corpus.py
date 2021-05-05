@@ -22,6 +22,7 @@ class Corpus:
         min_len=None,
         max_len=None,
         verbose=10,
+        merge=False,
     ):
         self.size = 0
         self.lang = lang
@@ -32,6 +33,7 @@ class Corpus:
         self.min_len = min_len
         self.max_len = max_len
         self.verbose = verbose
+        self.merge = merge
         self.last_actions = []
 
     def __len__(self):
@@ -56,13 +58,27 @@ class Corpus:
                 page = info["pages"][0]
                 html_text = page["extract"].replace("\xa0", " ").replace("\n", "")
                 soup = BeautifulSoup(html_text, "html.parser")
+                paragaraph = ""
+                l = 0
                 for data in soup.find_all("p"):
-                    paragraph = data.get_text()
-                    l = len(paragraph)
-                    valid_lower_bound = self.min_len is None or l >= self.min_len
-                    valid_upper_bound = self.max_len is None or l <= self.max_len
-                    if valid_lower_bound and valid_upper_bound:
-                        paragaraphs.append(data.get_text())
+                    new_paragraph = data.get_text()
+                    paragaraph += new_paragraph
+                    l += len(new_paragraph.split())
+                    # merging case
+                    if self.min_len is not None and l < self.min_len:
+                        if not self.merge:
+                            paragaraph = ""
+                            l = 0
+                        continue
+                    # no splitting case due to inabillity to split texts into sentences in a correct way
+                    elif self.max_len is not None and l > self.max_len:
+                        paragaraph = ""
+                        l = 0
+                        continue
+                    else:
+                        paragaraphs.append(paragaraph)
+                        paragaraph = ""
+                        l = 0
 
             except:
                 continue

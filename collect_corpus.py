@@ -27,14 +27,14 @@ def run():
     parser.add_argument(
         "-min_len",
         "--min_paragraph_len",
-        help="lower bound for paragraphs length",
+        help="lower bound for paragraphs length (in words)",
         type=int,
         default=None,
     )
     parser.add_argument(
         "-max_len",
         "--max_paragraph_len",
-        help="upper bound for paragraphs length",
+        help="upper bound for paragraphs length (in words)",
         type=int,
         default=None,
     )
@@ -49,6 +49,13 @@ def run():
         "-s",
         "--save",
         help="flag for saving .tsv file (you can specify file using --file_path, encoding by --encoding, and whether write paragraph len with --write_len)",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "-m",
+        "--merge",
+        help="flag for merging short paragraphs into one. Use this carefully, as there is a risk of spoiling the semantic coherence of the text.",
         action="store_true",
         default=False,
     )
@@ -103,6 +110,7 @@ def run():
         args.min_paragraph_len,
         args.max_paragraph_len,
         args.verbose,
+        args.merge,
     )
     corpus.collect_data(args.num_of_processes)
     if args.save:
