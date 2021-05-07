@@ -27,14 +27,14 @@ def run():
     parser.add_argument(
         "-min_len",
         "--min_paragraph_len",
-        help="lower bound for paragraphs length (in words)",
+        help="lower bound for paragraphs length (in words). Can significantly affect operating time.",
         type=int,
         default=None,
     )
     parser.add_argument(
         "-max_len",
         "--max_paragraph_len",
-        help="upper bound for paragraphs length (in words)",
+        help="upper bound for paragraphs length (in words). Can significantly affect operating time.",
         type=int,
         default=None,
     )
@@ -55,35 +55,35 @@ def run():
     parser.add_argument(
         "-m",
         "--merge",
-        help="flag for merging short paragraphs into one. Use this carefully, as there is a risk of spoiling the semantic coherence of the text.",
+        help="flag for merging short paragraphs into one. Use it carefully, as there is a risk of spoiling the semantic coherence of the text (ignored if -min_len doesn't provided).",
         action="store_true",
         default=False,
     )
     parser.add_argument(
         "-st",
         "--skip_titles",
-        help="flag for not adding default Toloka-like titles to .tsv file (ignored if -s doesn`t provided)",
+        help="flag for not adding default Toloka-like titles to .tsv file (ignored if -s doesn't provided)",
         action="store_true",
         default=False,
     )
     parser.add_argument(
         "-wl",
         "--write_len",
-        help="flag for write ID\tLEN\tPAR instead of ID\tPAR in .tsv file. (ignored if -s doesn`t provided)",
+        help="flag for write ID\tLEN\tPAR instead of ID\tPAR in .tsv file. (ignored if -s doesn't provided)",
         action="store_true",
         default=False,
     )
     parser.add_argument(
         "-rand",
         "--random_choise",
-        help="flag for random choice of max_size paragraphs from collected corpus (ignored if max_sized doesn`t specified)",
+        help="flag for random choice of max_size paragraphs from collected corpus (ignored if max_sized doesn't specified)",
         action="store_true",
         default=False,
     )
     parser.add_argument(
         "-enc",
         "--encoding",
-        help="encoding (open-like str for python3) for output file (ignored if -s doesn`t provided)",
+        help="encoding (open-like str for python3) for output file (ignored if -s doesn't provided)",
         type=str,
         default="utf-8",
     )
